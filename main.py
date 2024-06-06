@@ -1,0 +1,170 @@
+import re
+import pathlib
+import logging
+import asyncio
+import argparse
+import subprocess
+from datetime import datetime
+from typing import Dict, List
+from rich.console import Console
+
+
+async def log(value) -> Console:
+    try:
+        if value:
+            console = Console(log_path=False)
+            return console.log(
+                f"{value}",
+                highlight=True
+            )
+    except Exception as e:
+        logging.error(e)
+
+
+def remove_duplicate(value_list: list) -> list:
+    if value_list:
+        file_lines = [clear_value(line) for line in value_list]
+        [file_lines.remove(None) for i in range(file_lines.count(None))]
+        file_lines = list(set(file_lines))
+        return file_lines
+
+
+async def open_file(filename: str) -> dict[str, list[str] | str]:
+    try:
+        with open(filename, 'r', encoding="utf-8") as file:
+            f_contents_text = file.read()
+            file.seek(0)
+            f_contents_lines = file.readlines()
+            return {'text': f_contents_text, 'list': f_contents_lines}
+    except FileNotFoundError:
+        logging.info(f"File {filename} not found or inaccessible.")
+    except PermissionError:
+        logging.info(f"Permission denied to access {filename}.")
+
+
+def to_lower(value: str) -> str:
+    if value:
+        return value
+
+
+def clear_value(value: str) -> str:
+    if value:
+        return value.replace("\n", "").strip()
+
+
+async def command_line(command_str: str):
+    if command_str:
+        result = subprocess.run(
+            command_str,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            universal_newlines=True,
+            shell=True
+        )
+        if result.stdout:
+            console = Console(log_path=False)
+            result_ = remove_duplicate(str(result.stdout).split("\n"))
+            result_ = "\n".join(result_)
+
+            logging.info(result_)
+            console.print(result_)
+
+
+async def exec_grep(value: str, path: str) -> None:
+    if value:
+        value_clear = to_lower(clear_value(value))
+        command_str = f"grep -i '{value_clear}' -r {path}"
+        await command_line(command_str)
+
+
+async def find_value_file(value: str, filename: str, regex=False) -> list:
+    if value and filename:
+        if not regex:
+            value = '.*' + value + '.*'
+        try:
+            regex_compile = re.compile(value)
+            file_open = await open_file(filename)
+            regex_result = re.findall(regex_compile, file_open.get('text'))
+            return regex_result
+        except Exception as exp:
+            logging.error(exp)
+
+
+async def main_async(target_str: str, dir_target_str: str) -> None:
+    if dir_target_str and target_str:
+        file_list = list_file_dir(dir_target_str).get('files')
+        target_list = await open_file(target_str)
+        if target_list:
+            for target_ in remove_duplicate(target_list.get('list')):
+                await exec_grep(target_, dir_target_str)
+
+
+def list_file_dir(dir_str: str) -> dict[list[str], list[str] | str]:
+    dir_list: list = []
+    file_list: list = []
+    try:
+        if dir_str:
+            obj_path = pathlib.Path(dir_str)
+            path_tree_list = list(obj_path.rglob("*"))
+            for dir_file in path_tree_list:
+                if set(dir_file.parts).isdisjoint(SKIP_DIRS):
+                    if dir_file.is_dir():
+                        dir_list.append(dir_file)
+                        logging.debug(f"[DIR] {dir_file}")
+                    elif dir_file.is_file():
+                        file_list.append(dir_file)
+                        logging.debug(f"[FILE] {dir_file}")
+            return {'dirs': dir_list, 'files': file_list}
+    except Exception as exp:
+        logging.error(exp)
+
+
+if __name__ == '__main__':
+
+    print(
+
+        """
+        ╔──────────────────────────────────────────────────────────────────────────────────╗
+        │ ██████╗     ██████╗     ███████╗    ██████╗      █████╗     ██████╗      ██████╗ │
+        │██╔════╝     ██╔══██╗    ██╔════╝    ██╔══██╗    ██╔══██╗    ██╔══██╗    ██╔═══██╗│
+        │██║  ███╗    ██████╔╝    █████╗      ██████╔╝    ███████║    ██║  ██║    ██║   ██║│
+        │██║   ██║    ██╔══██╗    ██╔══╝      ██╔═══╝     ██╔══██║    ██║  ██║    ██║   ██║│
+        │╚██████╔╝    ██║  ██║    ███████╗    ██║         ██║  ██║    ██████╔╝    ╚██████╔╝│
+        │ ╚═════╝     ╚═╝  ╚═╝    ╚══════╝    ╚═╝         ╚═╝  ╚═╝    ╚═════╝      ╚═════╝ │
+        ╚──────────────────────────────────────────────────────────────────────────────────╝
+                                                                               By MrCl0wnLab
+        """
+
+
+    )
+
+    SKIP_DIRS: list = ["etc", "bin", "home"]
+    date_now = datetime.now()
+    dt_string = date_now.strftime("%d-%m-%Y-%H")
+
+    logging.getLogger().setLevel(logging.INFO)
+
+    parser = argparse.ArgumentParser(prog='Grepado')
+    parser.add_argument('-f', '--file', metavar="file",
+                        help="Parâmetro arquivo com nome de valores para pesquisa", default=None, required=True)
+    parser.add_argument('-p', '--path', metavar="path",
+                        help="Pasta onde será pesquisado os valores", default=None, required=True)
+    parser.add_argument('-s', '--save', metavar="save",
+                        help="Arquivo onde será salvo os valores", default=f'output-{dt_string}.txt')
+    args = parser.parse_args()
+
+    logging.basicConfig(
+        filename=str(args.save),
+        filemode='a',
+        format='%(message)s',
+        datefmt='%H:%M:%S',
+    )
+
+    try:
+        asyncio.run(
+            main_async(
+                target_str=args.file,
+                dir_target_str=args.path)
+        )
+    except KeyboardInterrupt as err:
+        logging.error(err)
