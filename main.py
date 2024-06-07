@@ -3,10 +3,12 @@ import pathlib
 import logging
 import asyncio
 import argparse
+import aiometer
 import subprocess
 from datetime import datetime
 from typing import Dict, List
 from rich.console import Console
+from functools import partial
 
 
 async def log(value) -> Console:
@@ -52,7 +54,7 @@ def clear_value(value: str) -> str:
         return value.replace("\n", "").strip()
 
 
-async def command_line(command_str: str):
+async def command_line(command_str: str) -> None:
     if command_str:
         result = subprocess.run(
             command_str,
@@ -92,11 +94,14 @@ async def find_value_file(value: str, filename: str, regex=False) -> list:
 
 async def main_async(target_str: str, dir_target_str: str) -> None:
     if dir_target_str and target_str:
-        file_list = list_file_dir(dir_target_str).get('files')
         target_list = await open_file(target_str)
         if target_list:
-            for target_ in remove_duplicate(target_list.get('list')):
-                await exec_grep(target_, dir_target_str)
+            result = aiometer.run_all(
+                [partial(exec_grep, target_, dir_target_str) for target_ in remove_duplicate(target_list.get('list'))],
+                max_at_once=1000,    # Limit maximum number of concurrently running tasks.
+                max_per_second=500   # Limit request rate to not overload the server.
+            )
+            await result
 
 
 def list_file_dir(dir_str: str) -> dict[list[str], list[str] | str]:
