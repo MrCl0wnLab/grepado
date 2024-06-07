@@ -73,9 +73,12 @@ async def command_line(command_str: str) -> None:
 
 
 async def exec_grep(value: str, path: str) -> None:
-    if value:
+    if value and path:
+        exclude_dir_str: str
+        if ARGS.skip:
+            exclude_dir_str = f" --exclude-dir={ARGS.skip}"
         value_clear = to_lower(clear_value(value))
-        command_str = f"grep -i '{value_clear}' -r {path}"
+        command_str = f"grep -i '{value_clear}' -r {path} {exclude_dir_str}"
         await command_line(command_str)
 
 
@@ -107,12 +110,13 @@ async def main_async(target_str: str, dir_target_str: str) -> None:
 def list_file_dir(dir_str: str) -> dict[list[str], list[str] | str]:
     dir_list: list = []
     file_list: list = []
+    skipe_list: list = ["etc", "bin", "home"]
     try:
         if dir_str:
             obj_path = pathlib.Path(dir_str)
             path_tree_list = list(obj_path.rglob("*"))
             for dir_file in path_tree_list:
-                if set(dir_file.parts).isdisjoint(SKIP_DIRS):
+                if set(dir_file.parts).isdisjoint(skipe_list):
                     if dir_file.is_dir():
                         dir_list.append(dir_file)
                         logging.debug(f"[DIR] {dir_file}")
@@ -143,23 +147,26 @@ if __name__ == '__main__':
 
     )
 
-    SKIP_DIRS: list = ["etc", "bin", "home"]
     date_now = datetime.now()
     dt_string = date_now.strftime("%d-%m-%Y-%H")
 
     logging.getLogger().setLevel(logging.INFO)
 
-    parser = argparse.ArgumentParser(prog='Grepado')
+    parser = argparse.ArgumentParser(prog='Grepado', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('-f', '--file', metavar="file",
                         help="Parâmetro arquivo com nome de valores para pesquisa", default=None, required=True)
     parser.add_argument('-p', '--path', metavar="path",
                         help="Pasta onde será pesquisado os valores", default=None, required=True)
-    parser.add_argument('-s', '--save', metavar="save",
+    parser.add_argument('-s', '--save', metavar="file",
                         help="Arquivo onde será salvo os valores", default=f'output-{dt_string}.txt')
-    args = parser.parse_args()
+    parser.add_argument('-k', '--skip', metavar="path",
+                        help="Pasta que o processo vai pular. Ex: -k path ou --skip path2 ou -k {path1,path2,path3}")
+    ARGS = parser.parse_args()
+
+
 
     logging.basicConfig(
-        filename=str(args.save),
+        filename=str(ARGS.save),
         filemode='a',
         format='%(message)s',
         datefmt='%H:%M:%S',
@@ -168,8 +175,8 @@ if __name__ == '__main__':
     try:
         asyncio.run(
             main_async(
-                target_str=args.file,
-                dir_target_str=args.path)
+                target_str=ARGS.file,
+                dir_target_str=ARGS.path)
         )
     except KeyboardInterrupt as err:
         logging.error(err)

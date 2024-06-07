@@ -41,26 +41,30 @@ graph TD;
 ╚──────────────────────────────────────────────────────────────────────────────────╝
                                                                       By MrCl0wnLab
         
-usage: Grepado [-h] -f file -p path [-s save]
+usage: Grepado [-h] -f file -p path [-s file] [-k path]
 
 options:
   -h, --help            show this help message and exit
-  -f file, --file file  Parâmetro arquivo com valores para pesquisa
-  -p path, --path path  Pasta onde será pesquisado os valores
-  -s save, --save save  Arquivo onde será salvo o resultado
+  -f file, --file file  Parâmetro arquivo com nome de valores para pesquisa (default: None)
+  -p path, --path path  Pasta onde será pesquisado os valores (default: None)
+  -s file, --save file  Arquivo onde será salvo os valores (default: output-%d-%m-%Y-%H.txt)
+  -k path, --skip path  Pasta que o processo vai pular. Ex: -k path ou --skip path2 ou -k {path1,path2,path3} (default: None)
 ```
 
 ### EXEMPLO
 ```bash
 python main.py -f ./desaparecidos.txt -p ./governo/
-python main.py -f ./desaparecidos.txt -p ./governo/ -s resultado.txt
-python main.py --file ./desaparecidos.txt --path ./governo/ --save resultado.txt
+python main.py -f ./bins.txt -p ./telegram/ -s resultado.txt
+python main.py --file ./cpfs.txt --path ./leak/ --save resultado.txt
+python main.py --file ./cpfs.txt --path ./leak/ --save resultado.txt --skip creditcard
+python main.py --file ./vermelho.txt --path ./cores/ --save resultado.txt --skip {azul,laranja,verde}
 ```
 
 ### GREP
 Comando grep usado
 ```bash
-grep -i '{value}' -r {path}
+grep -i '{value}' -r {path} 
+grep -i '{value}' -r {path} --exclude-dir={path}
 ```
 
 
