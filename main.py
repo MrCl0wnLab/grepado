@@ -19,8 +19,8 @@ async def log(value) -> Console:
                 f"{value}",
                 highlight=True
             )
-    except Exception as e:
-        logging.error(e)
+    except Exception as exp:
+        await log(str(exp))
 
 
 def remove_duplicate(value_list: list) -> list:
@@ -39,9 +39,9 @@ async def open_file(filename: str) -> dict[str, list[str] | str]:
             f_contents_lines = file.readlines()
             return {'text': f_contents_text, 'list': f_contents_lines}
     except FileNotFoundError:
-        logging.info(f"File {filename} not found or inaccessible.")
+        await log("File {filename} not found or inaccessible.")
     except PermissionError:
-        logging.info(f"Permission denied to access {filename}.")
+        await log(f"Permission denied to access {filename}.")
 
 
 def to_lower(value: str) -> str:
@@ -67,19 +67,24 @@ async def command_line(command_str: str) -> None:
             console = Console(log_path=False)
             result_ = remove_duplicate(str(result.stdout).split("\n"))
             result_ = "\n".join(result_)
-
             logging.info(result_)
             console.print(result_)
 
 
 async def exec_grep(value: str, path: str) -> None:
     if value and path:
-        exclude_dir_str: str
-        if ARGS.skip:
-            exclude_dir_str = f" --exclude-dir={ARGS.skip}"
-        value_clear = to_lower(clear_value(value))
-        command_str = f"grep -i '{value_clear}' -r {path} {exclude_dir_str}"
-        await command_line(command_str)
+        try:
+            exclude_dir_str: str = str()
+            pipe_str: str = str()
+            if ARGS.skip:
+                exclude_dir_str = f" --exclude-dir={ARGS.skip}"
+            if ARGS.pipe:
+                pipe_str = f" | {ARGS.pipe}"
+            value_clear = to_lower(clear_value(value))
+            command_str = f"grep -i '{value_clear}' -r {path} {exclude_dir_str} {pipe_str}"
+            await command_line(command_str)
+        except Exception as exp:
+            await log(str(exp))
 
 
 async def find_value_file(value: str, filename: str, regex=False) -> list:
@@ -92,7 +97,7 @@ async def find_value_file(value: str, filename: str, regex=False) -> list:
             regex_result = re.findall(regex_compile, file_open.get('text'))
             return regex_result
         except Exception as exp:
-            logging.error(exp)
+            await log(str(exp))
 
 
 async def main_async(target_str: str, dir_target_str: str) -> None:
@@ -125,7 +130,7 @@ def list_file_dir(dir_str: str) -> dict[list[str], list[str] | str]:
                         logging.debug(f"[FILE] {dir_file}")
             return {'dirs': dir_list, 'files': file_list}
     except Exception as exp:
-        logging.error(exp)
+        log(str(exp))
 
 
 if __name__ == '__main__':
@@ -153,20 +158,19 @@ if __name__ == '__main__':
     logging.getLogger().setLevel(logging.INFO)
 
     parser = argparse.ArgumentParser(prog='Grepado', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument('-f', '--file', metavar="file",
+    parser.add_argument('-l', '--list', metavar="file",
                         help="Parâmetro arquivo com nome de valores para pesquisa", default=None, required=True)
-    parser.add_argument('-p', '--path', metavar="path",
+    parser.add_argument('-r', '--rc', metavar="dir",
                         help="Pasta onde será pesquisado os valores", default=None, required=True)
-    parser.add_argument('-s', '--save', metavar="file",
+    parser.add_argument('-o', '--out', metavar="file",
                         help="Arquivo onde será salvo os valores", default=f'output-{dt_string}.txt')
-    parser.add_argument('-k', '--skip', metavar="path",
+    parser.add_argument('-s', '--skip', metavar="path",
                         help="Pasta que o processo vai pular. Ex: -k path ou --skip path2 ou -k {path1,path2,path3}")
+    parser.add_argument('-p', '--pipe', metavar="cmd", help="Comando que será executado depois de um pipe |")
+
     ARGS = parser.parse_args()
-
-
-
     logging.basicConfig(
-        filename=str(ARGS.save),
+        filename=str(ARGS.out),
         filemode='a',
         format='%(message)s',
         datefmt='%H:%M:%S',
@@ -175,8 +179,8 @@ if __name__ == '__main__':
     try:
         asyncio.run(
             main_async(
-                target_str=ARGS.file,
-                dir_target_str=ARGS.path)
+                target_str=ARGS.list,
+                dir_target_str=ARGS.rc)
         )
     except KeyboardInterrupt as err:
-        logging.error(err)
+        print(err)

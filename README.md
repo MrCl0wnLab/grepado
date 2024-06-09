@@ -41,23 +41,26 @@ graph TD;
 ╚──────────────────────────────────────────────────────────────────────────────────╝
                                                                       By MrCl0wnLab
         
-usage: Grepado [-h] -f file -p path [-s file] [-k path]
+usage: Grepado [-h] -l file -r dir [-o file] [-s path] [-p cmd]
 
 options:
   -h, --help            show this help message and exit
-  -f file, --file file  Parâmetro arquivo com nome de valores para pesquisa (default: None)
-  -p path, --path path  Pasta onde será pesquisado os valores (default: None)
-  -s file, --save file  Arquivo onde será salvo os valores (default: output-%d-%m-%Y-%H.txt)
-  -k path, --skip path  Pasta que o processo vai pular. Ex: -k path ou --skip path2 ou -k {path1,path2,path3} (default: None)
+  -l file, --list file  Parâmetro arquivo com nome de valores para pesquisa (default: None)
+  -r dir, --rc dir      Pasta onde será pesquisado os valores (default: None)
+  -o file, --out file   Arquivo onde será salvo os valores (default: output-%d-%m-%Y-%H.txt)
+  -s path, --skip path  Pasta que o processo vai pular. Ex: -k path ou --skip path2 ou -k {path1,path2,path3} (default: None)
+  -p cmd, --pipe cmd    Comando que será executado depois de um pipe | (default: None)
 ```
 
 ### EXEMPLO
 ```bash
-python main.py -f ./desaparecidos.txt -p ./governo/
-python main.py -f ./bins.txt -p ./telegram/ -s resultado.txt
-python main.py --file ./cpfs.txt --path ./leak/ --save resultado.txt
-python main.py --file ./cpfs.txt --path ./leak/ --save resultado.txt --skip creditcard
-python main.py --file ./vermelho.txt --path ./cores/ --save resultado.txt --skip {azul,laranja,verde}
+main.py -l ./desaparecidos.txt -r ./governo/
+main.py -l ./bins.txt -r ./telegram/ -o resultado.txt
+main.py --list ./cpfs.txt --rc ./leak/ --out resultado.txt
+main.py --list ./cpfs.txt --rc ./leak/ --out resultado.txt -s creditcard
+main.py --list ./vermelho.txt --rc ./cores/ --out resultado.txt --skip {azul,laranja,verde}
+main.py -l ./strings.txt -r ../arquivos/ --pipe "awk -F ':' '{print \$2}'"
+main.py --list ./ids.txt -r ../sorteio/ -p "awk -F ':' '{print \$2}'"
 ```
 
 ### GREP
@@ -65,6 +68,7 @@ Comando grep usado
 ```bash
 grep -i '{value}' -r {path} 
 grep -i '{value}' -r {path} --exclude-dir={path}
+grep -i '{value}' -r {path} --exclude-dir={path} | {pipe}
 ```
 
 
