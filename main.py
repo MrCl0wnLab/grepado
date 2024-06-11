@@ -54,37 +54,64 @@ def clear_value(value: str) -> str:
         return value.replace("\n", "").strip()
 
 
-async def command_line(command_str: str) -> None:
+async def command_line(command_str: str) -> str:
     if command_str:
-        result = subprocess.run(
-            command_str,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            universal_newlines=True,
-            shell=True
-        )
-        if result.stdout:
-            console = Console(log_path=False)
-            result_ = remove_duplicate(str(result.stdout).split("\n"))
-            result_ = "\n".join(result_)
-            logging.info(result_)
-            console.print(result_)
+        try:
+            result = subprocess.run(
+                command_str,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                universal_newlines=True,
+                shell=True
+            )
+            if result.stdout:
+                return result.stdout
+        except Exception as exp:
+            await log(str(exp))
 
 
 async def exec_grep(value: str, path: str) -> None:
     if value and path:
         try:
-            exclude_dir_str: str = str()
+            excl_str: str = str()
+            path_str: str = str()
             pipe_str: str = str()
+            uniq_str: str = str()
+            console = Console(log_path=False)
+
+            if ARGS.rc:
+                path_str = f"-r {path}" 
             if ARGS.skip:
-                exclude_dir_str = f" --exclude-dir={ARGS.skip}"
+                excl_str = f"--exclude-dir={ARGS.skip}"
+            if ARGS.uq:
+                uniq_str = " | sort -u"
             if ARGS.pipe:
                 pipe_str = f" | {ARGS.pipe}"
-            value_clear = to_lower(clear_value(value))
-            command_str = f"grep -i '{value_clear}' -r {path} {exclude_dir_str} {pipe_str}"
-            await command_line(command_str)
+            
+            value_clear = clear_value(value)
+            command_str = f"grep -i '{value_clear}' {path_str} {excl_str} {uniq_str} {pipe_str}"
+            print(command_str)
+            result = await command_line(command_str)
+            if result:
+                if ARGS.uq:
+                    result = remove_duplicate(str(result).split("\n"))
+                    result = "\n".join(result)
+                logging.info(result)
+                console.print(result)
         except Exception as exp:
             await log(str(exp))
+
+
+async def main_async(target_str: str, dir_target_str: str) -> None:
+    if dir_target_str and target_str:
+        target_list = await open_file(target_str)
+        if target_list:
+            result = aiometer.run_all(
+                [partial(exec_grep, target_, dir_target_str) for target_ in remove_duplicate(target_list.get('list'))],
+                max_at_once=1000,  # Limit maximum number of concurrently running tasks.
+                max_per_second=500  # Limit request rate to not overload the server.
+            )
+            await result
 
 
 async def find_value_file(value: str, filename: str, regex=False) -> list:
@@ -98,18 +125,6 @@ async def find_value_file(value: str, filename: str, regex=False) -> list:
             return regex_result
         except Exception as exp:
             await log(str(exp))
-
-
-async def main_async(target_str: str, dir_target_str: str) -> None:
-    if dir_target_str and target_str:
-        target_list = await open_file(target_str)
-        if target_list:
-            result = aiometer.run_all(
-                [partial(exec_grep, target_, dir_target_str) for target_ in remove_duplicate(target_list.get('list'))],
-                max_at_once=1000,    # Limit maximum number of concurrently running tasks.
-                max_per_second=500   # Limit request rate to not overload the server.
-            )
-            await result
 
 
 def list_file_dir(dir_str: str) -> dict[list[str], list[str] | str]:
@@ -136,7 +151,6 @@ def list_file_dir(dir_str: str) -> dict[list[str], list[str] | str]:
 if __name__ == '__main__':
 
     print(
-
         """
         ╔──────────────────────────────────────────────────────────────────────────────────╗
         │ ██████╗     ██████╗     ███████╗    ██████╗      █████╗     ██████╗      ██████╗ │
@@ -148,8 +162,6 @@ if __name__ == '__main__':
         ╚──────────────────────────────────────────────────────────────────────────────────╝
                                                                                By MrCl0wnLab
         """
-
-
     )
 
     date_now = datetime.now()
@@ -167,6 +179,7 @@ if __name__ == '__main__':
     parser.add_argument('-s', '--skip', metavar="path",
                         help="Pasta que o processo vai pular. Ex: -k path ou --skip path2 ou -k {path1,path2,path3}")
     parser.add_argument('-p', '--pipe', metavar="cmd", help="Comando que será executado depois de um pipe |")
+    parser.add_argument('-u', '--uq', help="Emite apenas a primeira linha de uma sequência repetida", action='store_true')
 
     ARGS = parser.parse_args()
     logging.basicConfig(
