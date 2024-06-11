@@ -72,6 +72,8 @@ async def command_line(command_str: str) -> str:
 
 async def exec_grep(value: str, path: str) -> None:
     if value and path:
+        if ARGS.verbose:
+            await log(f"[!]VALUE: {value}\n[!]PATH: {path}")
         try:
             excl_str: str = str()
             path_str: str = str()
@@ -90,7 +92,9 @@ async def exec_grep(value: str, path: str) -> None:
             
             value_clear = clear_value(value)
             command_str = f"grep -i '{value_clear}' {path_str} {excl_str} {uniq_str} {pipe_str}"
-            print(command_str)
+            if ARGS.verbose:
+                await log(f"[!]COMMAND: {command_str}")
+
             result = await command_line(command_str)
             if result:
                 if ARGS.uq:
@@ -104,6 +108,8 @@ async def exec_grep(value: str, path: str) -> None:
 
 async def main_async(target_str: str, dir_target_str: str) -> None:
     if dir_target_str and target_str:
+        if ARGS.verbose:
+            await log(f"[!]TARGET: {target_str}\n[!]DIR: {dir_target_str}\n")
         target_list = await open_file(target_str)
         if target_list:
             result = aiometer.run_all(
@@ -180,6 +186,7 @@ if __name__ == '__main__':
                         help="Pasta que o processo vai pular. Ex: -k path ou --skip path2 ou -k {path1,path2,path3}")
     parser.add_argument('-p', '--pipe', metavar="cmd", help="Comando que será executado depois de um pipe |")
     parser.add_argument('-u', '--uq', help="Emite apenas a primeira linha de uma sequência repetida", action='store_true')
+    parser.add_argument('-v', '--verbose', help="Modo verboso", action='store_true')
 
     ARGS = parser.parse_args()
     logging.basicConfig(

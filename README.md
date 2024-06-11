@@ -41,7 +41,7 @@ graph TD;
 ╚──────────────────────────────────────────────────────────────────────────────────╝
                                                                       By MrCl0wnLab
         
-usage: Grepado [-h] -l file -r dir [-o file] [-s path] [-p cmd] [-u]
+usage: Grepado [-h] -l file -r dir [-o file] [-s path] [-p cmd] [-u] [-v]
 
 options:
   -h, --help            show this help message and exit
@@ -51,6 +51,7 @@ options:
   -s path, --skip path  Pasta que o processo vai pular. Ex: -k path ou --skip path2 ou -k {path1,path2,path3} (default: None)
   -p cmd, --pipe cmd    Comando que será executado depois de um pipe | (default: None)
   -u, --uq              Emite apenas a primeira linha de uma sequência repetida (default: False)
+  -v, --verbose         Modo verboso (default: False)
 ```
 
 ### EXEMPLO
@@ -62,8 +63,9 @@ main.py --list ./cpfs.txt --rc ./leak/ --out resultado.txt -s creditcard
 main.py --list ./vermelho.txt --rc ./cores/ --out resultado.txt --skip {azul,laranja,verde}
 main.py -l ./strings.txt -r ../arquivos/ --pipe "awk -F ':' '{print \$2}'"
 main.py --list ./ids.txt -r ../sorteio/ -p "awk -F ':' '{print \$2}'"
-main.py -l '../cpf.txt' -r ../sql/ -u
-main.py -list ../desaparecidos.txt -r ../policia/ -u -p "awk -F ':' '{print \$2}' | sort -u" 
+main.py -l '../cpf.txt' -r ../sql/ --uq
+main.py -list ../desaparecidos.txt -r ../policia/ -u -p "awk -F ':' '{print \$2}' | sort -u" --verbose
+main.py -l '../cpf.txt' -r ../sql/ -u -v 
 ```
 
 ### GREP
