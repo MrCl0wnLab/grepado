@@ -1,2 +1,4 @@
 aiometer==0.4.0
 rich==13.6.0
+asyncio==3.4.3
+typing_extensions==4.9.0

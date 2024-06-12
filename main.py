@@ -1,4 +1,5 @@
 import re
+import shlex
 import pathlib
 import logging
 import asyncio
@@ -54,71 +55,66 @@ def clear_value(value: str) -> str:
         return value.replace("\n", "").strip()
 
 
-async def command_line(command_str: str) -> str:
+async def verbose(value: str):
+    if ARGS.verbose and value:
+        await log(value)
+
+
+async def command_line(command_str: str) -> None:
     if command_str:
         try:
-            result = subprocess.run(
-                command_str,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                universal_newlines=True,
-                shell=True
-            )
-            if result.stdout:
-                return result.stdout
+            cmd_shlex = shlex.split(f'{command_str}')
+            await verbose(f"[!]COMMAND: {cmd_shlex}")
+            rest_spn = subprocess.Popen(cmd_shlex, stdout=subprocess.PIPE, encoding='utf-8')
+            if ARGS.pipe:
+                try:
+                    cmd_shlex_pipe = shlex.split(ARGS.pipe)
+                    rest_spn = subprocess.Popen(cmd_shlex_pipe, stdin=rest_spn.stdout, stdout=subprocess.PIPE, encoding='utf-8')
+                    await verbose(f"[!]PIPE: {cmd_shlex_pipe}")
+                except Exception as exp:
+                    await log(str(exp))
+            for line_std in rest_spn.stdout:
+                if line_std:
+                    console = Console(log_path=False)
+                    logging.info(line_std.strip())
+                    (console.log(line_std.strip()) if ARGS.verbose else console.print(line_std.strip()))
         except Exception as exp:
             await log(str(exp))
 
 
 async def exec_grep(value: str, path: str) -> None:
     if value and path:
-        if ARGS.verbose:
-            await log(f"[!]VALUE: {value}\n[!]PATH: {path}")
+        await verbose(f"[!]VALUE: {value}\n[!]PATH: {path}")
         try:
             excl_str: str = str()
             path_str: str = str()
-            pipe_str: str = str()
-            uniq_str: str = str()
-            console = Console(log_path=False)
-
             if ARGS.rc:
                 path_str = f"-r {path}" 
             if ARGS.skip:
                 excl_str = f"--exclude-dir={ARGS.skip}"
-            if ARGS.uq:
-                uniq_str = " | sort -u"
-            if ARGS.pipe:
-                pipe_str = f" | {ARGS.pipe}"
-            
             value_clear = clear_value(value)
-            command_str = f"grep -i '{value_clear}' {path_str} {excl_str} {uniq_str} {pipe_str}"
-            if ARGS.verbose:
-                await log(f"[!]COMMAND: {command_str}")
-
-            result = await command_line(command_str)
-            if result:
-                if ARGS.uq:
-                    result = remove_duplicate(str(result).split("\n"))
-                    result = "\n".join(result)
-                logging.info(result)
-                console.print(result)
+            command_str = "grep -i -E '" + value_clear + f"' {path_str} --text {excl_str}"
+            await verbose(f"[!]COMMAND: {command_str}")
+            return await command_line(command_str)
         except Exception as exp:
             await log(str(exp))
 
 
 async def main_async(target_str: str, dir_target_str: str) -> None:
     if dir_target_str and target_str:
-        if ARGS.verbose:
-            await log(f"[!]TARGET: {target_str}\n[!]DIR: {dir_target_str}\n")
-        target_list = await open_file(target_str)
-        if target_list:
-            result = aiometer.run_all(
-                [partial(exec_grep, target_, dir_target_str) for target_ in remove_duplicate(target_list.get('list'))],
-                max_at_once=1000,  # Limit maximum number of concurrently running tasks.
-                max_per_second=500  # Limit request rate to not overload the server.
-            )
-            await result
-
+        try:
+            await verbose(f"[!]TARGET: {target_str}\n[!]DIR: {dir_target_str}\n")
+            target_list = await open_file(target_str)
+            if target_list:
+                result = aiometer.run_all(
+                    [partial(exec_grep, target_, dir_target_str) for target_ in remove_duplicate(target_list.get('list'))],
+                    max_at_once=1000,   # Limit maximum number of concurrently running tasks.
+                    max_per_second=500  # Limit request rate to not overload the server.
+                )
+                await result
+        except BrokenPipeError as exp:
+            await log(str(exp))
+      
 
 async def find_value_file(value: str, filename: str, regex=False) -> list:
     if value and filename:
@@ -170,8 +166,7 @@ if __name__ == '__main__':
         """
     )
 
-    date_now = datetime.now()
-    dt_string = date_now.strftime("%d-%m-%Y-%H")
+    dt_string = datetime.now().strftime("%d-%m-%Y-%H")
 
     logging.getLogger().setLevel(logging.INFO)
 
@@ -185,7 +180,6 @@ if __name__ == '__main__':
     parser.add_argument('-s', '--skip', metavar="path",
                         help="Pasta que o processo vai pular. Ex: -k path ou --skip path2 ou -k {path1,path2,path3}")
     parser.add_argument('-p', '--pipe', metavar="cmd", help="Comando que será executado depois de um pipe |")
-    parser.add_argument('-u', '--uq', help="Emite apenas a primeira linha de uma sequência repetida", action='store_true')
     parser.add_argument('-v', '--verbose', help="Modo verboso", action='store_true')
 
     ARGS = parser.parse_args()
