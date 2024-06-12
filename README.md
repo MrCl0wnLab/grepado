@@ -27,8 +27,8 @@ graph TD;
 ```
 
 ---
-
---help
+## USO DO SCRIPT
+> --help
 
 ```bash
 ╔──────────────────────────────────────────────────────────────────────────────────╗
@@ -53,7 +53,7 @@ options:
   -v, --verbose         Modo verboso (default: False)
 ```
 
-### EXEMPLO
+### EXEMPLO DE COMANDOS
 ```bash
 main.py -l ./desaparecidos.txt -r ./governo/
 main.py -l ./bins.txt -r ./telegram/ -o resultado.txt
@@ -65,22 +65,36 @@ main.py --list ./ids.txt -r ../sorteio/ -p "awk -F ':' '{print \$2}'"
 main.py -list ../rgs.txt -r ../policia/ -u -p "grep 'SP:'" --verbose
 main.py -list ../rgs.txt -r ../policia/ -u -p "grep 'SP:'" --verbose | sort -u
 ```
+### LISTA DE REGEX
+> Parâmetro -l / --list aceita arquivo com valores de expressão regular.
 
-### GREP
-Modelo comando grep usado
 ```bash
-grep -i '{value}' -r {path} 
-grep -i '{value}' -r {path} --exclude-dir={path}
-grep -i '{value}' -r {path} --exclude-dir={path} | {pipe}
-grep -i '{value}' -r {path} --exclude-dir={path} | {pipe} | {command}
+(https://|http://|ftp://|ssh://)
+(blogspot.com|.cn)
+(.translate.goog|google.)
 ```
 
+### GREP
+> Modelo comando grep usados
+
+```bash
+grep -i -E '{value}' -r {path} 
+grep -i -E '{value}' -r {path} --exclude-dir={path}
+grep -i -E '{value}' -r {path} --exclude-dir={path} | {pipe}
+grep -i -E '{value}' -r {path} --exclude-dir={path} | {pipe} | {command}
+```
 
 ### TERMINAL  OUTPUT
 ![Screenshot](/asset/img1.png)
 
-### ARQUIVO DE SAIDA
-arquivo padrão
+### VERBOSE
+> usando -v
+
+![Screenshot](/asset/img2.png)
+
+### ARQUIVO DE SAÍDA
+> arquivo padrão
+
 ```
 output-%d-%m-%Y-%H.txt
 ```
