@@ -27,7 +27,7 @@ graph TD;
 ```
 
 ---
-## USO DO SCRIPT
+## USO DA FERRAMENTA
 > --help
 
 ```bash
@@ -65,8 +65,16 @@ main.py --list ./ids.txt -r ../sorteio/ -p "awk -F ':' '{print \$2}'"
 main.py -list ../rgs.txt -r ../policia/ -u -p "grep 'SP:'" --verbose
 main.py -list ../rgs.txt -r ../policia/ -u -p "grep 'SP:'" --verbose | sort -u
 ```
+### EXEMPLO DE COMANDOS / PIPES
+```bash
+cat regex.txt | main.py -r ./governo/ -p "grep ministro"
+cat bins.txt | main.py --rc  ./cards/ -v 
+cat cps.txt | main.py -r ./dataleaks/ --verbose
+cat apis.txt | main.py -r ../projeto/sources/ --skip {dev,.git}
+```
+
 ### LISTA DE REGEX
-> Parâmetro -l / --list aceita arquivo com valores de expressão regular.
+> Parâmetro -l / --list aceita arquivo com valores de strings e expressão regular.
 
 ```bash
 (https://|http://|ftp://|ssh://)
