@@ -7,6 +7,7 @@ import logging
 import asyncio
 import argparse
 import aiometer
+import textwrap
 import subprocess
 from datetime import datetime
 from typing import Dict, List
@@ -21,6 +22,9 @@ __maintainer__ = "Cleiton Pinheiro aka MrCl0wn"
 __email__ = "mrcl0wnlab@gmail.com"
 __git__ = "https://github.com/MrCl0wnLab"
 __twitter__ = "https://twitter.com/MrCl0wnLab"
+
+
+
 
 
 def stdin_get_list() -> list:
@@ -58,9 +62,9 @@ def log(value) -> Console:
     try:
         if value:
             console = Console(log_path=False)
-            return console.log(
+            return console.print(
                 f"{value}",
-                highlight=True
+                highlight=True,
             )
     except Exception as exp:
         print(str(exp))
@@ -114,7 +118,7 @@ async def exec_grep(value: str, path: str) -> None:
             if ARGS.skip:
                 excl_str = f"--exclude-dir={ARGS.skip}"
             value_clear = clear_value(value)
-            command_str = "grep -i -E '" + value_clear + f"' {path_str} --text {excl_str}"
+            command_str = "grep -i -E '" + value_clear + f"' {path_str}  {excl_str}"
             await verbose(f"[!] COMMAND: {command_str}")
             return await command_line(command_str)
         except Exception as exp:
@@ -139,26 +143,29 @@ async def main_async(target_str_list: any, dir_target_str: str) -> None:
 
 
 if __name__ == '__main__':
-
+    
     print(
         """
+        \033[93m
         ╔──────────────────────────────────────────────────────────────────────────────────╗
-        │ ██████╗     ██████╗     ███████╗    ██████╗      █████╗     ██████╗      ██████╗ │
-        │██╔════╝     ██╔══██╗    ██╔════╝    ██╔══██╗    ██╔══██╗    ██╔══██╗    ██╔═══██╗│
-        │██║  ███╗    ██████╔╝    █████╗      ██████╔╝    ███████║    ██║  ██║    ██║   ██║│
-        │██║   ██║    ██╔══██╗    ██╔══╝      ██╔═══╝     ██╔══██║    ██║  ██║    ██║   ██║│
-        │╚██████╔╝    ██║  ██║    ███████╗    ██║         ██║  ██║    ██████╔╝    ╚██████╔╝│
-        │ ╚═════╝     ╚═╝  ╚═╝    ╚══════╝    ╚═╝         ╚═╝  ╚═╝    ╚═════╝      ╚═════╝ │
+        │\033[93m ██████╗     ██████╗     ███████╗    ██████╗ \033[32m     █████╗     ██████╗      ██████╗ │
+        │\033[93m██╔════╝     ██╔══██╗    ██╔════╝    ██╔══██╗\033[32m    ██╔══██╗    ██╔══██╗    ██╔═══██╗│
+        │\033[93m██║  ███╗    ██████╔╝    █████╗      ██████╔╝\033[32m    ███████║    ██║  ██║    ██║   ██║│
+        │\033[93m██║   ██║    ██╔══██╗    ██╔══╝      ██╔═══╝ \033[32m    ██╔══██║    ██║  ██║    ██║   ██║│
+        │\033[93m╚██████╔╝    ██║  ██║    ███████╗    ██║     \033[32m    ██║  ██║    ██████╔╝    ╚██████╔╝│
+        │\033[93m ╚═════╝     ╚═╝  ╚═╝    ╚══════╝    ╚═╝     \033[32m    ╚═╝  ╚═╝    ╚═════╝      ╚═════╝ │
         ╚──────────────────────────────────────────────────────────────────────────────────╝
-                                                                               By MrCl0wnLab
-        """
+                                                                               \33[97mBy MrCl0wnLab\033[0m"""
     )
 
+    console = Console(log_path=False)
     dt_string = datetime.now().strftime("%d-%m-%Y-%H")
-
     logging.getLogger().setLevel(logging.INFO)
 
-    parser = argparse.ArgumentParser(prog='Grepado', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    parser = argparse.ArgumentParser(
+        prog='grepado',
+        formatter_class=lambda prog: argparse.RawDescriptionHelpFormatter(prog, max_help_position=60, indent_increment=13, width=None),
+    )
     parser.add_argument('-l', '--list', metavar="file",
                         help="Parâmetro arquivo com nome de valores para pesquisa", default=stdin_get_list())
     parser.add_argument('-r', '--rc', metavar="dir",
@@ -173,8 +180,8 @@ if __name__ == '__main__':
     ARGS = parser.parse_args()
 
     if not ARGS.list:
-        print('[X] Grepado: error: the following arguments are required: -l/--list')
-        print('[X] Grepado: use pipes: cat list.txt | main.py -r ../testes/')
+        log('[X] Grepado: error: the following arguments are required: -l/--list')
+        log('[X] Grepado: use pipes: cat list.txt | main.py -r ../testes/')
     
 
     logging.basicConfig(
